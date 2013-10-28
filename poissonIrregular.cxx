@@ -423,7 +423,7 @@ int main(int argc, char** args) {
         ierr = DMDASetFieldName(dm,2,"vz");CHKERRQ(ierr);
     }
 
-    /*START PetscSection stuff
+    /*START PetscSection stuff*/
     PetscSection            s;
     PetscInt                nC;
     DMDALocalInfo           info;
@@ -435,8 +435,11 @@ int main(int argc, char** args) {
       for (PetscInt j = info.ys; j < info.ys+info.ym; ++j) {
         for (PetscInt i = info.xs; i < info.xs+info.xm; ++i) {
           PetscInt point;
-          ierr = DMDAGetCellPoint(dm, i, j, k, &point);CHKERRQ(ierr);
-          ierr = PetscSectionSetDof(s, point, testPoisson.mDof); // You know how many dof are on each vertex
+          if(isPosInDomain(&testPoisson,i,j,k)) {
+            ierr = DMDAGetCellPoint(dm, i, j, k, &point);CHKERRQ(ierr);
+            ierr = PetscSectionSetDof(s, point, testPoisson.mDof); // You know how many dof are on each vertex    
+          }
+          
         }
       }
     }
@@ -444,7 +447,7 @@ int main(int argc, char** args) {
     ierr = DMSetDefaultSection(dm, s);CHKERRQ(ierr);
     ierr = PetscSectionDestroy(&s);CHKERRQ(ierr);
 
-    END PetscSection stuff*/
+    /*END PetscSection stuff*/
 
     //Solve the model:
     ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
