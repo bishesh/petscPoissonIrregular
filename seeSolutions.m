@@ -5,7 +5,7 @@ addpath(genpath('/home/bkhanal/Documents/softwares/matlabTools/imshow3D/'));
 res_path = '/user/bkhanal/home/works/poissonIrregular/';
 
 fname = 'sol';
-dimension = 3;
+dimension = 2;
 sysFname = 'sysFile';
 % A = full(PetscBinaryRead([res_path sysFname]));
 petscObj = PetscReadBinaryMatlab([res_path fname]);
