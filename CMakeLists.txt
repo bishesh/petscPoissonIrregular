@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(poissonIrregular)
 
-#set(PETSC_DIR /home/bkhanal/Documents/softwares/petsc/)
-set(PETSC_DIR /home/bkhanal/Documents/softwares/petsc-3.4.3/)
+set(PETSC_DIR /home/bkhanal/Documents/softwares/petsc/)
+#set(PETSC_DIR /home/bkhanal/Documents/softwares/petsc-3.4.3/)
 set(PETSC_ARCH arch-linux2-cxx-debug)
 
 #add cmake modules path to the default one:
