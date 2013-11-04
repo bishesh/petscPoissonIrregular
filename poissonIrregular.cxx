@@ -66,6 +66,7 @@ LOOP for all cells in the cube with i,j,k indices:
 #include <petscksp.h>
 
 #define PETSC_SECTION 1
+//When using Petsc_Section, currently it solves for only 1 dof.
 
 /*User defined structures for the model*/
 /*typedef struct {
@@ -98,7 +99,11 @@ typedef struct {
 int modelInitialize(PoissonModel *userModel, const int* size, const int dimension) {
     userModel->modelBcType = PoissonModel::DIRICHLET; /*Currently only Dirichlet boundary supported*/
     userModel->mDimension = dimension;
-    userModel->mDof = 1;//userModel->mDimension;
+#ifdef PETSC_SECTION
+    userModel->mDof = 1;
+#else
+    userModel->mDof = userModel->mDimension;
+#endif
     userModel->mSize = (int*) malloc(userModel->mDimension * sizeof(int));
     for( int i = 0; i < userModel->mDimension; ++i)
         userModel->mSize[i] = size[i];
@@ -121,7 +126,7 @@ PetscBool isPosInDomain(const PoissonModel *userModel, const int x, const int y,
         if (pos[i] < 0 || pos[i] >= userModel->mSize[i])
             return PETSC_FALSE;
 
-//    return PETSC_TRUE;
+    //    return PETSC_TRUE;
     /*Create a spherical domain:*/
     double      rad1;
     int         c1x, c1y, c1z;
@@ -171,8 +176,8 @@ PetscErrorCode computeMatrix2d(KSP ksp, Mat A, Mat B, MatStructure *str, void *c
 
     PetscFunctionBeginUser;
     ierr = KSPGetDM(ksp,&da);CHKERRQ(ierr);
-//    ierr = DMGetMatrix(dm,&A);CHKERRQ(ierr);
-//    ierr = MatView(A,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    //    ierr = DMGetMatrix(dm,&A);CHKERRQ(ierr);
+    //    ierr = MatView(A,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
     ierr = DMDAGetLocalInfo(da,&info);CHKERRQ(ierr);
     for(PetscInt dof = 0; dof < 2; ++dof) {
         row.c = dof;
@@ -354,36 +359,36 @@ PetscErrorCode computeRhs2dSection(KSP ksp, Vec b, void *context) {
     for(PetscInt j = info.ys; j<info.ys+info.ym; ++j) {
         for(PetscInt i = info.xs; i<info.xs+info.xm; ++i) {
             PetscInt        point;
-//            PetscScalar     v[2];     //for 1st and 2nd dofs.
+            //            PetscScalar     v[2];     //for 1st and 2nd dofs.
             PetscScalar     v;     //for 1st and 2nd dofs.
             if(isPosInDomain(ctx,i,j)) {
                 v = getRhsAt(ctx,0,i,j);
-//                v[0] = getRhsAt(ctx,0,i,j);
-//                v[1] = getRhsAt(ctx,1,i,j);
+                //                v[0] = getRhsAt(ctx,0,i,j);
+                //                v[1] = getRhsAt(ctx,1,i,j);
                 if(isPosInDomain(ctx,i,j)) {
                     if(!isPosInDomain(ctx,i+1,j)) {
                         v -= getRhsAt(ctx,0,i+1,j);
-//                        v[0] -= getRhsAt(ctx,0,i+1,j);
-//                        v[1] -= getRhsAt(ctx,1,i+1,j);
+                        //                        v[0] -= getRhsAt(ctx,0,i+1,j);
+                        //                        v[1] -= getRhsAt(ctx,1,i+1,j);
                     }
                     if(!isPosInDomain(ctx,i-1,j)) {
                         v -= getRhsAt(ctx,0,i-1,j);
-//                        v[0] -= getRhsAt(ctx,0,i-1,j);
-//                        v[1] -= getRhsAt(ctx,1,i-1,j);
+                        //                        v[0] -= getRhsAt(ctx,0,i-1,j);
+                        //                        v[1] -= getRhsAt(ctx,1,i-1,j);
                     }
                     if(!isPosInDomain(ctx,i,j+1)) {
                         v -= getRhsAt(ctx,0,i,j+1);
-//                        v[0] -= getRhsAt(ctx,0,i,j+1);
-//                        v[1] -= getRhsAt(ctx,1,i,j+1);
+                        //                        v[0] -= getRhsAt(ctx,0,i,j+1);
+                        //                        v[1] -= getRhsAt(ctx,1,i,j+1);
                     }
                     if(!isPosInDomain(ctx,i,j-1)) {
                         v -= getRhsAt(ctx,0,i,j-1);
-//                        v[0] -= getRhsAt(ctx,0,i,j-1);
-//                        v[1] -= getRhsAt(ctx,1,i,j-1);
+                        //                        v[0] -= getRhsAt(ctx,0,i,j-1);
+                        //                        v[1] -= getRhsAt(ctx,1,i,j-1);
                     }
                 }
                 ierr = DMDAGetCellPoint(da,i,j,0,&point);CHKERRQ(ierr);
-//                ierr = VecSetValuesSection(b,gs,point,v,INSERT_VALUES);CHKERRQ(ierr);
+                //                ierr = VecSetValuesSection(b,gs,point,v,INSERT_VALUES);CHKERRQ(ierr);
                 ierr = VecSetValuesSection(b,gs,point,&v,INSERT_VALUES);CHKERRQ(ierr);
                 //                ierr = PetscSectionGetOffset(gs,point,&pos);CHKERRQ(ierr);
                 //                ierr = VecSetValue(b,pos+1,v[0],INSERT_VALUES);CHKERRQ(ierr);
@@ -555,7 +560,7 @@ int main(int argc, char** args) {
         ierr = DMDACreate2d(PETSC_COMM_WORLD,DMDA_BOUNDARY_NONE,DMDA_BOUNDARY_NONE,DMDA_STENCIL_STAR,
                             size[0],size[1],PETSC_DECIDE,PETSC_DECIDE,testPoisson.mDof,1,NULL,NULL,&dm);CHKERRQ(ierr);
         ierr = DMDASetFieldName(dm,0,"vx");CHKERRQ(ierr);
-//        ierr = DMDASetFieldName(dm,1,"vy");CHKERRQ(ierr);
+        //        ierr = DMDASetFieldName(dm,1,"vy");CHKERRQ(ierr);
     } else {
         ierr = DMDACreate3d(PETSC_COMM_WORLD,DMDA_BOUNDARY_NONE,DMDA_BOUNDARY_NONE,DMDA_BOUNDARY_NONE,DMDA_STENCIL_STAR,
                             size[0],size[1],size[2],PETSC_DECIDE,PETSC_DECIDE,PETSC_DECIDE,testPoisson.mDof,1,NULL,NULL,NULL,&dm);CHKERRQ(ierr);
@@ -577,17 +582,17 @@ int main(int argc, char** args) {
             PetscInt point;
             if(isPosInDomain(&testPoisson,i,j,0)) {
                 ierr = DMDAGetCellPoint(dm, i, j, 0, &point);CHKERRQ(ierr);
-//                PetscSynchronizedPrintf(PETSC_COMM_WORLD,"\n in Domain point: %d",point);
+                //                PetscSynchronizedPrintf(PETSC_COMM_WORLD,"\n in Domain point: %d",point);
                 ierr = PetscSectionSetDof(s, point, testPoisson.mDof); // No. of dofs associated with the point.
             } //else {
-//                PetscSynchronizedPrintf(PETSC_COMM_WORLD,"\n outside domain point: %d,%d",i,j);
+            //                PetscSynchronizedPrintf(PETSC_COMM_WORLD,"\n outside domain point: %d,%d",i,j);
             //}
         }
     }
     ierr = PetscSectionSetUp(s);CHKERRQ(ierr);
     ierr = DMSetDefaultSection(dm, s);CHKERRQ(ierr);
     ierr = PetscSectionDestroy(&s);CHKERRQ(ierr);
-//    ierr = DMGetMatrix(dm,&A);CHKERRQ(ierr);
+    //    ierr = DMGetMatrix(dm,&A);CHKERRQ(ierr);
     ierr = DMCreateMatrix(dm,&A);CHKERRQ(ierr);
     ierr = MatView(A,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
 #endif
